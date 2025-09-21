@@ -50,3 +50,29 @@ app.get('/api/pending-status', async (req, res) => {
 });
 
 app.listen(process.env.PORT || 3000, () => console.log('Server running'));
+const express = require("express");
+const { Telegraf } = require("telegraf");
+const app = express();
+
+// === Backend API ===
+app.use(express.json());
+
+app.get("/api/pending-status", (req, res) => {
+  res.json({ error: "no token" });
+});
+
+// ===== Telegram Bot =====
+const bot = new Telegraf(process.env.TG_BOT_TOKEN);
+
+bot.start((ctx) => {
+  ctx.reply("Привет! Я бот, связанный с вашим Minecraft-клиентом.");
+});
+
+// Запускаем бота в режиме polling
+bot.launch();
+
+// ===== Render требует слушать порт =====
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Backend + Bot запущен на порту ${PORT}`);
+});
