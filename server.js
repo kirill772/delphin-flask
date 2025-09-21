@@ -1,17 +1,21 @@
 // server.js
 const express = require("express");
-require("dotenv").config(); // загружаем .env
+const cors = require("cors");
+require("dotenv").config();
+
 const app = express();
+app.use(cors());
 app.use(express.json());
 
-// ===== Backend API =====
+// "База" пользователей в памяти (для примера)
+const users = {}; // { telegramId: { username, token } }
 
-// Проверка статуса сервера
+// ===== Проверка статуса backend =====
 app.get("/api/pending-status", (req, res) => {
   res.json({ message: "Backend работает!" });
 });
 
-// Привязка токена к Telegram-аккаунту
+// ===== Регистрация токена от клиента =====
 app.post("/api/claim-token", (req, res) => {
   const { token, telegram_id, telegram_username } = req.body;
 
@@ -19,14 +23,27 @@ app.post("/api/claim-token", (req, res) => {
     return res.json({ success: false, error: "Неверные данные" });
   }
 
-  // TODO: здесь добавить проверку токена в базе данных и присвоение роли
+  // Сохраняем в "базу"
+  users[telegram_id] = { username: telegram_username, token };
   console.log(`Привязка токена ${token} к TG ${telegram_username} (${telegram_id})`);
 
   return res.json({ success: true });
 });
 
-// ===== Запуск Web Service =====
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Backend запущен на порту ${PORT}`);
+// ===== Проверка ник/пароля при входе =====
+app.post("/api/login", (req, res) => {
+  const { telegram_id, username, token } = req.body;
+
+  const user = users[telegram_id];
+  if (!user) return res.json({ success: false, error: "Пользователь не найден" });
+
+  if (user.token === token && user.username === username) {
+    return res.json({ success: true });
+  }
+
+  return res.json({ success: false, error: "Неверный ник или токен" });
 });
+
+// ===== Запуск сервера =====
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Backend запущен на порту ${PORT}`));
